@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BP Monitoring</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Google Fonts Montserrat -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <h2>Categories</h2>
+      <button data-cat="vol">Vol</button>
+      <button data-cat="orbitale">Orbitale</button>
+      <button data-cat="ressources">Ressources</button>
+      <button data-cat="capteurs">Capteurs</button>
+    </aside>
+    <div id="main">
+      <header>
+        <h1>BP Monitoring Dashboard</h1>
+      </header>
+      <section id="cards" class="grid"></section>
+      <section id="charts"></section>
+      <section id="controls"></section>
+    </div>
+  </div>
+  <script src="lib/chart.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
