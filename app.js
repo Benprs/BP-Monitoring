@@ -9,10 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // === Configuration des chemins des sons d'alerte ===
   const soundPaths = {
-    paused:      '',
     power:       'assets/audios/C4.wav',
-    offline:     'assets/audios/A4.wav',
-    noTelemetry: ''
+    offline:     'assets/audios/A4.wav'
   };
 
   // Création et préchargement des objets Audio, bouclage activé
@@ -63,8 +61,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function showModal(title, subtitle) {
     const modal = ensureModal();
     modal.querySelector('#modal-title').textContent = title;
-    modal.querySelector('#modal-subtitle').textContent = subtitle;
+    const subEl = modal.querySelector('#modal-subtitle');
+    subEl.textContent = subtitle;
     modal.classList.remove('hidden');
+    return modal;
   }
 
   // Fonction pour cacher la modale et arrêter les sons
@@ -75,6 +75,19 @@ document.addEventListener('DOMContentLoaded', () => {
       audio.pause();
       audio.currentTime = 0;
     });
+  }
+
+  // Fonction pour afficher la modale de connexion Telemachus
+  function showConnectionError() {
+    const modal = showModal(
+      'NO TELEMACHUS CONNECTION DETECTED',
+      ''
+    );
+    const subEl = modal.querySelector('#modal-subtitle');
+    subEl.innerHTML = `Please make sure Telemachus is installed and your game loaded correctly. <a href="https://github.com/Benprs/BP-Monitoring" target="_blank" class="underline text-blue-400">HELP</a>`;
+    const titleEl = modal.querySelector('#modal-title');
+    titleEl.style.animation = 'none';
+    titleEl.style.color = 'red';
   }
 
   // Fonction pour mettre à jour l'heure réelle chaque seconde
@@ -138,8 +151,13 @@ document.addEventListener('DOMContentLoaded', () => {
           showModal('NO TELEMETRY', 'No telemetry system instances detected.');
           sounds.noTelemetry.play();
           break;
+        case 5:
+          // Statut inconnu: traiter comme connexion perdue
+          showConnectionError();
+          break;
         default:
-          console.warn('Status jeu inconnu:', data['p.paused']);
+          // Par défaut, afficher modale de connexion
+          showConnectionError();
       }
     }
 
@@ -177,6 +195,125 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  ws.addEventListener('error', e => console.error('WebSocket error:', e));
-  ws.addEventListener('close', () => console.warn('WebSocket closed'));
+  // Gestion de la connexion perdue ou erreur WebSocket
+  ws.addEventListener('error', e => {
+    console.error('WebSocket error:', e);
+    showConnectionError();
+  });
+
+  ws.addEventListener('close', () => {
+    console.warn('WebSocket closed');
+    showConnectionError();
+  });
 });
+
+// === Three.js Kerbin viewer ===
+(function(){
+  const container = document.getElementById('planet-viewer');
+  const width     = container.clientWidth;
+  const height    = container.clientHeight;
+
+  // Scène et caméra
+  const scene  = new THREE.Scene();
+    // Skybox
+    // Simulation de fond étoilé via point cloud
+    const starsGeometry = new THREE.BufferGeometry();
+    const starCount = 10000;
+    const positions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      const theta = THREE.MathUtils.randFloatSpread(360);
+      const phi = THREE.MathUtils.randFloatSpread(360);
+      const radius = THREE.MathUtils.randFloat(50, 100);
+      positions[i*3 + 0] = radius * Math.sin(theta) * Math.cos(phi);
+      positions[i*3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
+      positions[i*3 + 2] = radius * Math.cos(theta);
+    }
+    starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5 });
+    const starField = new THREE.Points(starsGeometry, starsMaterial);
+    scene.add(starField);
+  const camera = new THREE.PerspectiveCamera(45, width/height, 0.1, 1000);
+  camera.position.set(0, 0, 3);
+
+  // Renderer
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(width, height);
+    // Paramètres de tone mapping pour effet cinématique
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0; // exposant initial
+  container.appendChild(renderer.domElement);
+
+  // Lumières
+  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+  dirLight.position.set(5, 3, 5);
+  scene.add(dirLight);
+
+  // Géométrie de Kerbin
+  const geometry = new THREE.SphereGeometry(1, 64, 64);
+  const loader   = new THREE.TextureLoader();
+  const texture  = loader.load(
+    'assets/images/kerbin_texture.png'
+  );
+  // Ajout de bumpMap pour relief
+  const bumpTexture = loader.load('assets/images/kerbin-bump-map.png');
+  const material = new THREE.MeshStandardMaterial({
+    map: texture,
+    bumpMap: bumpTexture,
+    // bumpScale calculé : 4km altitude pour niveau 255
+    bumpScale: 4000 / 600000  // ≈0.006667, pour un rayon de sphère de 1 unité (Kerbin radius≈600km)
+  });
+  const kerbin   = new THREE.Mesh(geometry, material);
+  scene.add(kerbin);
+
+    // Couches de nuages
+    const cloudGeo = new THREE.SphereGeometry(1.02, 64, 64);
+    const cloudTex = loader.load('assets/images/kerbin-clouds-map.png');
+    const cloudMat = new THREE.MeshStandardMaterial({
+      map: cloudTex,
+      transparent: true,
+      opacity: 0.5,
+      depthWrite: false
+    });
+    const clouds = new THREE.Mesh(cloudGeo, cloudMat);
+    scene.add(clouds);
+
+    // Atmosphère
+    const atmGeometry = new THREE.SphereGeometry(1.05, 64, 64);
+    const atmMaterial = new THREE.MeshBasicMaterial({
+      color: 0x5e98e8,
+      side: THREE.BackSide,
+      transparent: true,
+      opacity: 0.25
+    });
+    const atmosphere = new THREE.Mesh(atmGeometry, atmMaterial);
+    scene.add(atmosphere);
+
+  // Animation
+  function animate() {
+    requestAnimationFrame(animate);
+    kerbin.rotation.y += 0.001;
+    clouds.rotation.y += 0.0009; // rotation des nuages, légèrement plus lente
+    
+    // Effet de tonalité animé (pulse subtle)
+    const tExposure = Date.now() * 0.0002;
+    renderer.toneMappingExposure = 1.0 + Math.sin(tExposure) * 0.3;
+
+    // Éclairage cinématique: soleil tourne
+    const tLight = Date.now() * 0.0001;
+    dirLight.position.set(Math.sin(tLight)*5, 3, Math.cos(tLight)*5);
+    dirLight.intensity = 0.6 + 0.4 * Math.sin(tLight);
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // Réponse au redimensionnement
+  window.addEventListener('resize', () => {
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w/h;
+    camera.updateProjectionMatrix();
+  });
+})();

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- Tailwind Play CDN (dév only) -->
@@ -34,53 +36,62 @@
       <div class="font-mono text-gray-800 dark:text-gray-200" id="clock">--:--:--</div>
     </header>
 
-    <main class="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 flex-1">
-      <!-- Viewer planète -->
-      <div id="viewer"
-           class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow col-span-1 sm:col-span-2 lg:col-span-3 flex flex-col items-center">
-        <div id="planet-viewer" class="w-full h-64 bg-black rounded"></div>
-        <p id="planet-name" class="mt-2 text-lg text-gray-700 dark:text-gray-200">Nom de la planète</p>
-      </div>
+    <main class="p-6 grid grid-cols-1 sm:grid-cols-3 grid-rows-2 gap-6 flex-1">
+  <!-- Ligne 1 : Viewer + deux panels droit -->
+  <div id="viewer" class="col-span-1 bg-white dark:bg-gray-800 p-4 rounded-lg shadow h-80 flex flex-col items-center">
+    <div id="planet-viewer" class="w-full h-64 bg-black rounded"></div>
+    <p id="planet-name" class="mt-2 text-center text-lg text-gray-700 dark:text-gray-200">Nom de la planète</p>
+  </div>
 
-      <!-- Liquid Fuel -->
-      <div id="block-fuel" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-        <h2 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-3">Liquid Fuel</h2>
-        <div class="relative pt-1">
-          <div class="overflow-hidden h-4 text-xs flex rounded bg-blue-200">
-            <div id="bar-fuel"
-                 class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
-                 style="width:0%"></div>
-          </div>
-        </div>
-        <p id="label-fuel" class="text-sm text-gray-500 dark:text-gray-400 mt-2">0%</p>
-      </div>
+  <!-- Petit panel à droite du viewer -->
+  <div id="small-panel" class="col-span-1 bg-white dark:bg-gray-800 p-4 rounded-lg shadow h-80">
+    <!-- Contenu petit panel -->
+    <p class="text-gray-700 dark:text-gray-200">Petite Info</p>
+  </div>
 
-      <!-- Oxydizer -->
-      <div id="block-oxidizer" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-        <h2 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-3">Oxydizer</h2>
-        <div class="relative pt-1">
-          <div class="overflow-hidden h-4 text-xs flex rounded bg-red-200">
-            <div id="bar-oxidizer"
-                 class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-red-500"
-                 style="width:0%"></div>
-          </div>
-        </div>
-        <p id="label-oxidizer" class="text-sm text-gray-500 dark:text-gray-400 mt-2">0%</p>
-      </div>
+  <!-- Grand panel large -->
+  <div id="large-panel" class="col-span-1 bg-white dark:bg-gray-800 p-4 rounded-lg shadow h-80">
+    <!-- Contenu grand panel -->
+    <p class="text-gray-700 dark:text-gray-200">Grand panel</p>
+  </div>
 
-      <!-- Electric Charge -->
-      <div id="block-electric" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-        <h2 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-3">Electric Charge</h2>
-        <div class="relative pt-1">
-          <div class="overflow-hidden h-4 text-xs flex rounded bg-yellow-200">
-            <div id="bar-electric"
-                 class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-yellow-500"
-                 style="width:0%"></div>
-          </div>
-        </div>
-        <p id="label-electric" class="text-sm text-gray-500 dark:text-gray-400 mt-2">0%</p>
+  <!-- Ligne 2 : Ressources -->
+  <div id="block-fuel" class="col-span-1 bg-white dark:bg-gray-800 p-4 rounded-lg shadow h-40">
+    <h2 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-3">Liquid Fuel</h2>
+    <div class="relative pt-1">
+      <div class="overflow-hidden h-4 text-xs flex rounded bg-blue-200">
+        <div id="bar-fuel"
+             class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
+             style="width:0%"></div>
       </div>
-    </main>
+    </div>
+    <p id="label-fuel" class="text-sm text-gray-500 dark:text-gray-400 mt-2">0%</p>
+  </div>
+
+  <div id="block-oxidizer" class="col-span-1 bg-white dark:bg-gray-800 p-4 rounded-lg shadow h-40">
+    <h2 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-3">Oxydizer</h2>
+    <div class="relative pt-1">
+      <div class="overflow-hidden h-4 text-xs flex rounded bg-red-200">
+        <div id="bar-oxidizer"
+             class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-red-500"
+             style="width:0%"></div>
+      </div>
+    </div>
+    <p id="label-oxidizer" class="text-sm text-gray-500 dark:text-gray-400 mt-2">0%</p>
+  </div>
+
+  <div id="block-electric" class="col-span-1 bg-white dark:bg-gray-800 p-4 rounded-lg shadow h-40">
+    <h2 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-3">Electric Charge</h2>
+    <div class="relative pt-1">
+      <div class="overflow-hidden h-4 text-xs flex rounded bg-yellow-200">
+        <div id="bar-electric"
+             class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-yellow-500"
+             style="width:0%"></div>
+      </div>
+    </div>
+    <p id="label-electric" class="text-sm text-gray-500 dark:text-gray-400 mt-2">0%</p>
+  </div>
+</main>
   </div>
 
   <script src="app.js"></script>
