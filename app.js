@@ -1,4 +1,6 @@
 // script.js
+// mute/unmute flag
+let isMuted = false;
 // Intégration Telemachus via WebSocket + affichage du temps de mission + heure réelle + jauges + corps orbital + status jeu avec modale custom stylée et sons d'alerte (configurables, bouclés)
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -45,14 +47,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!modal) {
       modal = document.createElement('div');
       modal.id = 'custom-modal';
-      modal.className = 'fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm z-50 hidden';
+      modal.className = 'fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-70 backdrop-blur-sm z-50 hidden relative';
       modal.innerHTML = `
-        <div class="bg-gray-900 p-6 rounded-lg shadow-2xl max-w-sm text-center border-4 border-red-600">
-          <h2 id="modal-title" class="text-3xl font-extrabold uppercase mb-2" style="animation: blink 1s step-start infinite;">ALERTE</h2>
+        <div class="relative bg-gray-900 p-6 rounded-lg max-w-sm text-center border-4 border-red-600">
+          <div id="modal-sound-toggle" class="absolute top-2 right-2 text-white text-xl cursor-pointer">🔊</div>
+          <h2 id="modal-title" class="text-3xl font-extrabold uppercase mb-2" style="animation:blink 1s step-start infinite;">ALERTE</h2>
           <p id="modal-subtitle" class="mb-4 text-xl text-white"></p>
         </div>
       `;
+      modal.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.8)';
       document.body.appendChild(modal);
+      // Ajout du toggle son dans la modale
+      const toggle = modal.querySelector('#modal-sound-toggle');
+      toggle.addEventListener('click', () => {
+        isMuted = !isMuted;
+        Object.values(sounds).forEach(a => a.muted = isMuted);
+        toggle.textContent = isMuted ? '🔇' : '🔊';
+      });
     }
     return modal;
   }
@@ -215,6 +226,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Scène et caméra
   const scene  = new THREE.Scene();
+    // Atmosphere scattering (fog)
+    scene.fog = new THREE.FogExp2(0x000000, 0.001);
     // Skybox
     // Simulation de fond étoilé via point cloud
     const starsGeometry = new THREE.BufferGeometry();
@@ -233,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const starField = new THREE.Points(starsGeometry, starsMaterial);
     scene.add(starField);
   const camera = new THREE.PerspectiveCamera(45, width/height, 0.1, 1000);
-  camera.position.set(0, 0, 3);
+    camera.position.set(0, 0, 3);
 
   // Renderer
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -250,19 +263,26 @@ document.addEventListener('DOMContentLoaded', () => {
   scene.add(dirLight);
 
   // Géométrie de Kerbin
-  const geometry = new THREE.SphereGeometry(1, 64, 64);
+  // Géométrie de Kerbin with higher resolution for displacement
+  // Géométrie de Kerbin ajustée pour relief modéré
+  const geometry = new THREE.SphereGeometry(1, 128, 128);
   const loader   = new THREE.TextureLoader();
   const texture  = loader.load(
     'assets/images/kerbin_texture.png'
   );
   // Ajout de bumpMap pour relief
-  const bumpTexture = loader.load('assets/images/kerbin-bump-map.png');
-  const material = new THREE.MeshStandardMaterial({
-    map: texture,
-    bumpMap: bumpTexture,
-    // bumpScale calculé : 4km altitude pour niveau 255
-    bumpScale: 4000 / 600000  // ≈0.006667, pour un rayon de sphère de 1 unité (Kerbin radius≈600km)
-  });
+  // Bump + specular map pour plus de réalisme
+    const bumpTexture = loader.load('assets/images/kerbin-bump-map.png');
+    const specTexture = loader.load('assets/images/kerbin_specular.png'); // Spécifiez votre specular map ici
+    const material = new THREE.MeshPhongMaterial({
+      map: texture,
+      bumpMap: bumpTexture,
+      bumpScale: 0.02,           // relief plus subtil
+      displacementMap: bumpTexture,
+      displacementScale: 0.02,   // relief plus subtil
+      specularMap: specTexture,
+      shininess: 55              // moins brillant pour un aspect plus doux
+    });
   const kerbin   = new THREE.Mesh(geometry, material);
   scene.add(kerbin);
 
@@ -278,26 +298,85 @@ document.addEventListener('DOMContentLoaded', () => {
     const clouds = new THREE.Mesh(cloudGeo, cloudMat);
     scene.add(clouds);
 
+      // Shader pour l'atmosphère réaliste
+  const atmosphereShader = {
+    uniforms: {},
+    vertexShader: `
+      varying vec3 vNormal;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vNormal;
+      void main() {
+        float intensity = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
+        gl_FragColor = vec4(0.3, 0.6, 1.0, 1.0) * intensity; // Couleur bleu clair
+      }
+    `,
+  };
+  
+
     // Atmosphère
     const atmGeometry = new THREE.SphereGeometry(1.05, 64, 64);
-    const atmMaterial = new THREE.MeshBasicMaterial({
-      color: 0x5e98e8,
+    const atmMaterial = new THREE.ShaderMaterial({
+      uniforms: atmosphereShader.uniforms,
+      vertexShader: atmosphereShader.vertexShader,
+      fragmentShader: atmosphereShader.fragmentShader,
       side: THREE.BackSide,
+      blending: THREE.AdditiveBlending,
       transparent: true,
-      opacity: 0.25
     });
     const atmosphere = new THREE.Mesh(atmGeometry, atmMaterial);
     scene.add(atmosphere);
+
+  // Halo autour de la planète
+  const haloGeometry = new THREE.SphereGeometry(1.05, 64, 64); // Réduisez le rayon
+  const haloMaterial = new THREE.MeshBasicMaterial({
+    color: 0x87ceeb, // Bleu ciel
+    side: THREE.BackSide,
+    transparent: true,
+    opacity: 0.2, // Augmentez légèrement l'opacité pour un effet plus doux
+  });
+  const halo = new THREE.Mesh(haloGeometry, haloMaterial);
+  scene.add(halo);
+
+  const vibrantShader = {
+    uniforms: {
+      texture: { value: texture },
+      saturation: { value: 1.5 }, // Augmentez la saturation (1.0 = normal)
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D texture;
+      uniform float saturation;
+      varying vec2 vUv;
+
+      vec3 adjustSaturation(vec3 color, float sat) {
+        float luma = dot(color, vec3(0.299, 0.587, 0.114)); // Luminance
+        return mix(vec3(luma), color, sat);
+      }
+
+      void main() {
+        vec4 texColor = texture2D(texture, vUv);
+        texColor.rgb = adjustSaturation(texColor.rgb, saturation);
+        gl_FragColor = texColor;
+      }
+    `,
+  };
 
   // Animation
   function animate() {
     requestAnimationFrame(animate);
     kerbin.rotation.y += 0.001;
     clouds.rotation.y += 0.0009; // rotation des nuages, légèrement plus lente
-    
-    // Effet de tonalité animé (pulse subtle)
-    const tExposure = Date.now() * 0.0002;
-    renderer.toneMappingExposure = 1.0 + Math.sin(tExposure) * 0.3;
 
     // Éclairage cinématique: soleil tourne
     const tLight = Date.now() * 0.0001;
