@@ -32,8 +32,17 @@
   <div class="flex-1 flex flex-col">
     <!-- Header avec timer et horloge -->
     <header id="control" class="bg-white dark:bg-gray-800 shadow p-4 flex justify-between items-center">
-      <div class="font-mono text-gray-800 dark:text-gray-200">T+<span id="timer">00:00:00</span></div>
-      <div class="font-mono text-gray-800 dark:text-gray-200" id="clock">--:--:--</div>
+      <!-- Timer modernisé style centre de contrôle -->
+      <div class="flex items-center space-x-2">
+        <span class="text-gray-500 dark:text-gray-400 uppercase tracking-wider">T+</span>
+        <div id="timer" class="bg-black text-green-400 font-mono text-2xl px-4 py-1 rounded-lg shadow-inner">
+          00:00:00
+        </div>
+      </div>
+      <!-- Horloge réelle -->
+      <div id="clock" class="bg-black text-green-400 font-mono text-xl px-4 py-1 rounded-lg shadow-inner">
+        --:--:--
+      </div>
     </header>
 
     <main class="p-6 grid grid-cols-1 sm:grid-cols-3 grid-rows-2 gap-6 flex-1">
