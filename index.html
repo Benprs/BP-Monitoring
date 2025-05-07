@@ -3,30 +3,86 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BP Monitoring</title>
+  <!-- Tailwind Play CDN (dév only) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- ou votre CSS TailAdmin -->
   <link rel="stylesheet" href="style.css" />
-  <!-- Google Fonts Montserrat -->
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+  <title>Dashboard Télémétrie KSP</title>
 </head>
-<body>
-  <div id="app">
-    <aside id="sidebar">
-      <h2>Categories</h2>
-      <button data-cat="vol">Vol</button>
-      <button data-cat="orbitale">Orbitale</button>
-      <button data-cat="ressources">Ressources</button>
-      <button data-cat="capteurs">Capteurs</button>
-    </aside>
-    <div id="main">
-      <header>
-        <h1>BP Monitoring Dashboard</h1>
-      </header>
-      <section id="cards" class="grid"></section>
-      <section id="charts"></section>
-      <section id="controls"></section>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex">
+
+  <!-- Navbar latérale -->
+  <aside class="w-64 bg-gray-800 text-gray-200 flex-shrink-0">
+    <div class="p-6">
+      <h2 class="text-xl font-bold">KSP Dashboard</h2>
     </div>
+    <nav class="mt-6">
+      <a href="#control" class="block py-2.5 px-6 hover:bg-gray-700 bg-gray-700">
+        ControlCenter
+      </a>
+      <a href="#docking" class="block py-2.5 px-6 hover:bg-gray-700">
+        Docking
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Contenu principal -->
+  <div class="flex-1 flex flex-col">
+    <!-- Header avec timer et horloge -->
+    <header id="control" class="bg-white dark:bg-gray-800 shadow p-4 flex justify-between items-center">
+      <div class="font-mono text-gray-800 dark:text-gray-200">T+<span id="timer">00:00:00</span></div>
+      <div class="font-mono text-gray-800 dark:text-gray-200" id="clock">--:--:--</div>
+    </header>
+
+    <main class="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 flex-1">
+      <!-- Viewer planète -->
+      <div id="viewer"
+           class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow col-span-1 sm:col-span-2 lg:col-span-3 flex flex-col items-center">
+        <div id="planet-viewer" class="w-full h-64 bg-black rounded"></div>
+        <p id="planet-name" class="mt-2 text-lg text-gray-700 dark:text-gray-200">Nom de la planète</p>
+      </div>
+
+      <!-- Liquid Fuel -->
+      <div id="block-fuel" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <h2 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-3">Liquid Fuel</h2>
+        <div class="relative pt-1">
+          <div class="overflow-hidden h-4 text-xs flex rounded bg-blue-200">
+            <div id="bar-fuel"
+                 class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500"
+                 style="width:0%"></div>
+          </div>
+        </div>
+        <p id="label-fuel" class="text-sm text-gray-500 dark:text-gray-400 mt-2">0%</p>
+      </div>
+
+      <!-- Oxydizer -->
+      <div id="block-oxidizer" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <h2 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-3">Oxydizer</h2>
+        <div class="relative pt-1">
+          <div class="overflow-hidden h-4 text-xs flex rounded bg-red-200">
+            <div id="bar-oxidizer"
+                 class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-red-500"
+                 style="width:0%"></div>
+          </div>
+        </div>
+        <p id="label-oxidizer" class="text-sm text-gray-500 dark:text-gray-400 mt-2">0%</p>
+      </div>
+
+      <!-- Electric Charge -->
+      <div id="block-electric" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+        <h2 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-3">Electric Charge</h2>
+        <div class="relative pt-1">
+          <div class="overflow-hidden h-4 text-xs flex rounded bg-yellow-200">
+            <div id="bar-electric"
+                 class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-yellow-500"
+                 style="width:0%"></div>
+          </div>
+        </div>
+        <p id="label-electric" class="text-sm text-gray-500 dark:text-gray-400 mt-2">0%</p>
+      </div>
+    </main>
   </div>
-  <script src="lib/chart.js"></script>
+
   <script src="app.js"></script>
 </body>
 </html>
