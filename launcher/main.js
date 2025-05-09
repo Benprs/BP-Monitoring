@@ -46,7 +46,7 @@ async function checkForUpdates() {
             await git.pull('origin', 'main');
             console.log('Mise à jour terminée. Redémarrage requis.');
             app.relaunch();
-            app.exit();
+            shutdownApp(); // Utilise la fonction centralisée
         } else {
             console.log('Aucune mise à jour disponible.');
         }
@@ -61,6 +61,7 @@ function createWindow() {
         height: 400,
         frame: false,
         resizable: false,
+        icon: path.join(__dirname, '../assets/images/icon.png'),
         webPreferences: {
             preload: __dirname + '/preload.js',
             contextIsolation: true,
@@ -90,26 +91,30 @@ function createTray() {
         {
             label: 'Quitter',
             click: () => {
-                console.log('Quitting application...');
-                if (viteProcess) {
-                    console.log('Stopping Vite process...');
-                    kill(viteProcess.pid, 'SIGKILL', (err) => {
-                        if (err) {
-                            console.error('Failed to kill Vite process:', err);
-                        } else {
-                            console.log('Vite process killed successfully');
-                            viteProcess = null; // Réinitialise viteProcess après l'arrêt
-                            app.exit(); // Force la fermeture complète de l'application
-                        }
-                    });
-                } else {
-                    app.exit(); // Force la fermeture complète si aucun processus Vite n'est actif
-                }
+                shutdownApp(); // Utilise la fonction quit
             }
         }
     ]);
     tray.setToolTip('Serveur Vite en cours d\'exécution');
     tray.setContextMenu(contextMenu);
+}
+
+function shutdownApp() {
+    console.log('Shutting down application...');
+    if (viteProcess) {
+        console.log('Stopping Vite process...');
+        kill(viteProcess.pid, 'SIGKILL', (err) => {
+            if (err) {
+                console.error('Failed to kill Vite process:', err);
+            } else {
+                console.log('Vite process killed successfully');
+                viteProcess = null; // Réinitialise viteProcess après l'arrêt
+            }
+            app.exit(); // Force la fermeture complète de l'application
+        });
+    } else {
+        app.exit(); // Force la fermeture complète si aucun processus Vite n'est actif
+    }
 }
 
 app.whenReady().then(async () => {
@@ -153,7 +158,7 @@ app.whenReady().then(async () => {
                         console.log('Closing launcher window in 2 seconds...');
                         setTimeout(() => {
                             mainWindow.close();
-                        }, 2000);
+                        }, 1000);
                     }
                 });
             }, 3000);
@@ -180,11 +185,10 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-    // Ne quitte pas l'application si le serveur Vite est actif
     if (viteProcess) {
         console.log('Server still running in the background.');
     } else {
-        if (process.platform !== 'darwin') app.quit();
+        shutdownApp(); // Utilise la fonction centralisée
     }
 });
 
