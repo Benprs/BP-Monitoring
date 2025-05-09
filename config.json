@@ -1,3 +1,4 @@
 {
-  "showLauncherLogs": true
+  "showLauncherLogs": true,
+  "dev-mode": true
 }

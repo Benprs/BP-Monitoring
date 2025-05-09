@@ -3,6 +3,8 @@ const { spawn, exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const kill = require('tree-kill');
+const simpleGit = require('simple-git');
+const git = simpleGit();
 let viteProcess;
 let mainWindow;
 let tray;
@@ -13,9 +15,44 @@ console.log('Launcher started');
 
 // Charge la configuration
 const configPath = path.join(__dirname, '../config.json'); // Chemin vers le fichier de configuration
-let config = { showLauncherLogs: true }; // Valeur par défaut
+let config = { showLauncherLogs: true, 'dev-mode': false }; // Valeurs par défaut
 if (fs.existsSync(configPath)) {
     config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+}
+
+// Fonction de vérification et mise à jour
+async function checkForUpdates() {
+    if (config['dev-mode']) {
+        console.log('Dev mode actif : bypass de la verification des mises à jour.');
+        return;
+    }
+
+    console.log('Vérification des mises à jour...');
+    try {
+        // Assurez-vous que le dépôt est propre
+        const status = await git.status();
+        if (!status.isClean()) {
+            console.log('Le dépôt contient des modifications locales. Mise à jour annulée.');
+            return;
+        }
+
+        // Récupère les dernières modifications
+        await git.fetch();
+        const behind = (await git.log(['origin/main..HEAD'])).total;
+
+        if (behind > 0) {
+            console.log(`Mise à jour disponible : ${behind} commits derrière.`);
+            console.log('Application des mises à jour...');
+            await git.pull('origin', 'main');
+            console.log('Mise à jour terminée. Redémarrage requis.');
+            app.relaunch();
+            app.exit();
+        } else {
+            console.log('Aucune mise à jour disponible.');
+        }
+    } catch (err) {
+        console.error('Erreur lors de la vérification des mises à jour :', err);
+    }
 }
 
 function createWindow() {
@@ -75,8 +112,9 @@ function createTray() {
     tray.setContextMenu(contextMenu);
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
     console.log('creating window');
+    await checkForUpdates(); // Vérifie les mises à jour avant de créer la fenêtre
     createWindow();
 
     ipcMain.handle('launch-vite', async () => {
@@ -104,14 +142,20 @@ app.whenReady().then(() => {
                     } else {
                         console.log('Browser opened successfully');
                     }
-                });
 
-                if (mainWindow) {
-                    console.log('Closing launcher window in 2 seconds...');
-                    setTimeout(() => {
-                        mainWindow.close(); // Ferme la fenêtre Electron après 2 secondes
-                    }, 2000);
-                }
+                    // Crée l'icône dans la barre d'état système
+                    if (!tray) {
+                        createTray();
+                    }
+
+                    // Ferme la fenêtre Electron après 2 secondes
+                    if (mainWindow) {
+                        console.log('Closing launcher window in 2 seconds...');
+                        setTimeout(() => {
+                            mainWindow.close();
+                        }, 2000);
+                    }
+                });
             }, 3000);
         } catch (err) {
             console.error('Error launching Vite:', err);
