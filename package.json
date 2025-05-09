@@ -1,4 +1,7 @@
-{
+{  
+  "name": "bp-monitoring",
+  "version": "0.0.1",
+  "description": "Telemachus KSP Dashboard",
   "dependencies": {
     "chart.js": "^4.4.9",
     "three": "^0.176.0"
