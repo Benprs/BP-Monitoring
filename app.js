@@ -221,6 +221,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // === Three.js Kerbin viewer ===
 (function(){
   const container = document.getElementById('planet-viewer');
+    // Assurer le clipping du canvas dans la card
+    container.style.position = 'relative';
+    container.style.overflow = 'hidden';
   const width     = container.clientWidth;
   const height    = container.clientHeight;
 
@@ -255,6 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0; // exposant initial
   container.appendChild(renderer.domElement);
+    // Ne pas forcer CSS sur le canvas, Three.js l'ajuste à container via setSize
 
   // Lumières
   scene.add(new THREE.AmbientLight(0xffffff, 0.8));

@@ -1,0 +1,21 @@
+{
+  "name": "launcher",
+  "version": "1.0.0",
+  "description": "Launcher Electron pour KSP Dashboard",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron ."
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "electron": "^36.2.0"
+  },
+  "dependencies": {
+    "open": "^10.1.2",
+    "tree-kill": "^1.2.2"
+  }
+}
