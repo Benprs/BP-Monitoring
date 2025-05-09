@@ -9,3 +9,11 @@
 body {
   font-family: 'Montserrat', sans-serif;
 }
+
+.warning-icon {
+  display: none;
+  color: #ff9800;
+  margin-left: 4px;
+  font-size: 1.2em;
+  vertical-align: middle;
+}

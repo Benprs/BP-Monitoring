@@ -130,18 +130,30 @@ app.whenReady().then(async () => {
                 return;
             }
             console.log('Starting Vite process...');
-            viteProcess = spawn('npx', ['vite'], { cwd: __dirname + '/..', shell: true });
+            viteProcess = spawn('npx', ['vite', '--host'], {
+                cwd: path.join(__dirname, '..'),
+                shell: true,
+                stdio: config.showLauncherLogs ? 'inherit' : 'ignore',
+                env: {
+                    ...process.env,
+                    FORCE_COLOR: '0',    // désactive les couleurs ANSI
+                    NO_COLOR: '1'
+                }
+            });
 
-            if (config.showLauncherLogs) {
+            // N’attachez les handlers stdout/stderr QUE si showLauncherLogs est true
+            if (config.showLauncherLogs && viteProcess.stdout && viteProcess.stderr) {
                 viteProcess.stdout.on('data', data => console.log(`[vite stdout] ${data}`));
                 viteProcess.stderr.on('data', data => console.error(`[vite stderr] ${data}`));
             }
+
+            // on('close') existe toujours, quel que soit stdio
             viteProcess.on('close', code => console.log(`Vite exited with code ${code}`));
 
             console.log('Waiting for Vite to be ready...');
             setTimeout(() => {
                 console.log('Opening dashboard in browser...');
-                exec('start http://localhost:5173', (error) => {
+                exec('start http://localhost:8080', (error) => {
                     if (error) {
                         console.error('Failed to open browser:', error);
                     } else {

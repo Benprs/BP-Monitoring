@@ -7,7 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const timerEl = document.getElementById('timer');
   const clockEl = document.getElementById('clock');
   const planetNameEl = document.getElementById('planet-name');
-  const WS_URL = 'ws://localhost:8085/datalink';
+  const host = window.location.hostname || '127.0.0.1';
+  const WS_URL = `ws://${host}:8085/datalink`;
 
   // === Configuration des chemins des sons d'alerte ===
   const soundPaths = {
@@ -111,9 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Ressources à surveiller
   const resources = [
-    { name: 'LiquidFuel',     id: 'fuel' },
-    { name: 'Oxidizer',       id: 'oxidizer' },
-    { name: 'ElectricCharge', id: 'electric' }
+    { id: 'fuel',      key: 'LiquidFuel'    },
+    { id: 'oxidizer',  key: 'Oxidizer'       },
+    { id: 'electric',  key: 'ElectricCharge' }
   ];
 
   // Ouvre la connexion WebSocket
@@ -125,8 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
     subscribe['+'].push('v.body');
     subscribe['+'].push('p.paused');
     resources.forEach(res => {
-      subscribe['+'].push(`r.resource[${res.name}]`);
-      subscribe['+'].push(`r.resourceMax[${res.name}]`);
+      subscribe['+'].push(`r.resource[${res.key}]`);
+      subscribe['+'].push(`r.resourceMax[${res.key}]`);
     });
     ws.send(JSON.stringify(subscribe));
   });
@@ -135,6 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let data;
     try {
       data = JSON.parse(evt.data);
+      console.log('WebSocket data received:', data);
     } catch (err) {
       console.error('WS parse error:', err);
       return;
@@ -189,18 +191,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Mise à jour des jauges via current/max
-    resources.forEach(res => {
-      const curKey = `r.resource[${res.name}]`;
-      const maxKey = `r.resourceMax[${res.name}]`;
-      const cur = parseFloat(data[curKey]);
-      const max = parseFloat(data[maxKey]);
+    resources.forEach(({id, key}) => {
+      const cur = parseFloat(data[`r.resource[${key}]`]);
+      const max = parseFloat(data[`r.resourceMax[${key}]`]);
       if (!isNaN(cur) && !isNaN(max) && max > 0) {
         const pct = Math.round((cur / max) * 100);
-        const bar = document.getElementById(`bar-${res.id}`);
-        const label = document.getElementById(`label-${res.id}`);
-        if (bar && label) {
-          bar.style.width = `${pct}%`;
+        const bar   = document.getElementById(`bar-${id}`);
+        const label = document.getElementById(`label-${id}`);
+        const icon  = document.getElementById(`icon-${id}`);  // ajouté
+        if (bar && label && icon) {
+          bar.style.width   = `${pct}%`;
           label.textContent = `${pct}%`;
+          // affiche l'icône si < 15%, sinon la cache
+          icon.style.display = pct < 15 ? 'inline' : 'none';
         }
       }
     });
